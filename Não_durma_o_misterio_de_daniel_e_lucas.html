@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-black">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NÃO DURMA - O Mistério de Daniel e Lucas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Retro CRT, Analog Horror & Horror UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Creepster&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom Analog Horror Scanlines & CRT FX */
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #030303;
+            color: #d1d5db;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.35) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        .vignette {
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.95), inset 0 0 40px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+
+        /* Glitch Animation */
+        @keyframes glitch-anim {
+            0% { transform: translate(0); }
+            20% { transform: translate(-3px, 3px); }
+            40% { transform: translate(-3px, -3px); }
+            60% { transform: translate(3px, 3px); }
+            80% { transform: translate(3px, -3px); }
+            100% { transform: translate(0); }
+        }
+
+        .glitch-active {
+            animation: glitch-anim 0.15s infinite;
+        }
+
+        /* CRT Turn Off Animation */
+        @keyframes crt-off {
+            0% {
+                transform: scale(1, 1);
+                filter: brightness(1);
+            }
+            40% {
+                transform: scale(1, 0.005);
+                filter: brightness(5);
+            }
+            100% {
+                transform: scale(0, 0);
+                filter: brightness(0);
+            }
+        }
+
+        .crt-shutdown {
+            animation: crt-off 0.7s forwards ease-in;
+        }
+
+        /* Red REC Blinking */
+        @keyframes rec-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .rec-dot {
+            animation: rec-blink 1s infinite;
+        }
+
+        /* Custom Scrollbar for Logs */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ef4444;
+        }
+
+        .font-vt323 { font-family: 'VT323', monospace; }
+        .font-creepster { font-family: 'Creepster', cursive; }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-0 m-0">
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="relative w-full h-full max-w-[1280px] max-h-[800px] bg-zinc-950 overflow-hidden border border-zinc-800 md:rounded-xl shadow-2xl flex flex-col justify-between">
+        
+        <!-- CRT Visual Effect Layers -->
+        <div class="absolute inset-0 crt-overlay z-40"></div>
+        <div class="absolute inset-0 vignette z-40"></div>
+
+        <!-- Static Noise Background Overlay -->
+        <canvas id="noiseCanvas" class="absolute inset-0 w-full h-full opacity-[0.07] z-10 pointer-events-none"></canvas>
+
+        <!-- SCREEN 0: START / TITLE SCREEN -->
+        <div id="screen-start" class="absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-zinc-950 text-center">
+            <div class="mt-8 flex flex-col items-center">
+                <div class="text-red-600 text-sm tracking-[0.3em] font-bold mb-2 animate-pulse">◆ ANALOG HORROR ARCHIVE #0317 ◆</div>
+                <h1 class="font-vt323 text-5xl md:text-7xl text-red-600 font-extrabold tracking-widest drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]">
+                    NÃO DURMA
+                </h1>
+                <p class="text-xs md:text-sm text-zinc-400 max-w-md mt-2 tracking-widest uppercase">
+                    O Mistério de Daniel e Lucas
+                </p>
+            </div>
+
+            <!-- Story Teaser Card -->
+            <div class="max-w-md w-full bg-zinc-900/80 border border-zinc-800 p-5 rounded-lg text-left text-xs space-y-3 shadow-xl backdrop-blur">
+                <p class="text-zinc-300 italic border-l-2 border-red-600 pl-3">
+                    "Às 03:17 da madrugada, o celular toca. Uma mensagem de um número desconhecido diz: NÃO DURMA."
+                </p>
+                <p class="text-zinc-400">
+                    O que começou como um susto noturno revela um caso de desaparecimento não resolvido de 10 anos atrás.
+                </p>
+                <div class="text-red-400 font-bold text-[11px] flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                    RECOMENDADO O USO DE FONES DE OUVIDO
+                </div>
+            </div>
+
+            <!-- Start Action Button -->
+            <div class="w-full max-w-md mb-6">
+                <button id="btn-start-game" class="w-full py-4 bg-red-950/80 hover:bg-red-900 border border-red-600/60 hover:border-red-500 text-red-200 font-bold text-lg tracking-widest uppercase transition-all duration-200 rounded shadow-[0_0_20px_rgba(185,28,28,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] active:scale-[0.98]">
+                    INICIAR INVESTIGAÇÃO (03:17 AM)
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 1: ACT 1 - THE 03:17 AM MESSAGES & PHONE CALL -->
+        <div id="screen-act1" class="hidden absolute inset-0 z-20 flex flex-col items-center justify-center p-4 bg-black">
+            
+            <!-- Room Background Viewport -->
+            <div id="act1-room" class="relative w-full h-full flex flex-col items-center justify-center">
+                <!-- Digital Clock Overlay -->
+                <div class="absolute top-4 left-4 flex items-center gap-3 text-red-600 font-vt323 text-3xl md:text-4xl tracking-widest bg-black/80 px-4 py-1.5 rounded border border-red-900/40">
+                    <span id="act1-clock">03:17 AM</span>
+                    <span class="text-xs text-red-500 font-sans tracking-normal uppercase border border-red-800/60 px-2 py-0.5 rounded bg-red-950/40">QUARTO DO LUCAS</span>
+                </div>
+
+                <!-- Window View with Choices -->
+                <div id="window-graphic" class="w-64 h-48 border-4 border-zinc-800 bg-gradient-to-b from-zinc-950 to-slate-900 relative overflow-hidden rounded shadow-2xl flex items-center justify-center transition-all duration-500 mb-6">
+                    <!-- Glass reflection -->
+                    <div class="absolute inset-0 bg-blue-500/5 backdrop-blur-[1px]"></div>
+                    <!-- Moon / Darkness outside -->
+                    <div class="w-12 h-12 rounded-full bg-slate-800/40 blur-md absolute top-4 right-6"></div>
+                    <!-- Window Curtains (Toggled by action) -->
+                    <div id="curtain-left" class="absolute top-0 bottom-0 left-0 w-0 bg-zinc-900 border-r border-zinc-700 transition-all duration-700"></div>
+                    <div id="curtain-right" class="absolute top-0 bottom-0 right-0 w-0 bg-zinc-900 border-l border-zinc-700 transition-all duration-700"></div>
+                    <!-- Window Text/Status -->
+                    <span id="window-status-text" class="text-[10px] text-zinc-500 tracking-widest uppercase z-10">Janela Aberta - Escuridão Total</span>
+                </div>
+
+                <!-- Smartphone Interactive Device Frame -->
+                <div id="phone-device" class="w-72 md:w-80 h-[380px] bg-zinc-900 border-4 border-zinc-700 rounded-3xl p-3 shadow-[0_0_30px_rgba(0,0,0,0.9)] flex flex-col justify-between relative transition-transform duration-300">
+                    
+                    <!-- Phone Screen Header -->
+                    <div class="bg-zinc-950 p-2.5 rounded-t-2xl border-b border-zinc-800 flex justify-between items-center text-[10px] text-zinc-400">
+                        <span>3:17 AM</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>4G</span>
+                            <span>8%</span>
+                        </div>
+                    </div>
+
+                    <!-- Phone Messages Container -->
+                    <div id="phone-chat-body" class="flex-1 bg-zinc-950/90 p-3 overflow-y-auto space-y-3 text-xs font-sans flex flex-col">
+                        <!-- Chat messages injected dynamically -->
+                    </div>
+
+                    <!-- Phone Action / Incoming Call Overlay -->
+                    <div id="phone-call-overlay" class="hidden absolute inset-0 bg-zinc-950 rounded-2xl p-5 flex flex-col items-center justify-between text-center border-2 border-red-600/80 animate-pulse">
+                        <div class="mt-4">
+                            <div class="text-xs text-red-500 font-mono tracking-widest uppercase mb-1">CHAMADA RECEBIDA</div>
+                            <div class="text-lg font-bold text-white font-mono">MEU NÚMERO</div>
+                            <div class="text-[11px] text-zinc-400 font-mono mt-0.5">(SOU EU?)</div>
+                        </div>
+
+                        <!-- Pulsing Phone Icon -->
+                        <div class="w-16 h-16 rounded-full bg-red-950 border-2 border-red-500 flex items-center justify-center text-red-400 text-2xl my-4">
+                            📞
+                        </div>
+
+                        <button id="btn-answer-call" class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-wider uppercase shadow-lg active:scale-95 transition">
+                            ATENDER LIGAÇÃO
+                        </button>
+                    </div>
+
+                    <!-- Phone Action Buttons Bar -->
+                    <div id="phone-actions" class="bg-zinc-950 p-2 rounded-b-2xl border-t border-zinc-800 flex flex-col gap-2">
+                        <!-- Interactive choices inserted here -->
+                    </div>
+                </div>
+
+                <!-- Hold Breathing Interactive Mechanic -->
+                <div id="hold-breath-zone" class="hidden absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6 text-center">
+                    <div class="text-red-500 font-vt323 text-3xl mb-2 animate-pulse">ALGUÉM ESTÁ RESPIRANDO ATRÁS DE VOCÊ...</div>
+                    <p class="text-xs text-zinc-400 mb-8 max-w-xs">NÃO OLHE PARA TRÁS. FECHE OS OLHOS E SEGURE O BOTÃO ATÉ QUE O PERIGO PASSE.</p>
+                    
+                    <button id="btn-hold-breath" class="w-48 h-48 rounded-full border-4 border-red-600/80 bg-red-950/40 hover:bg-red-900/60 text-red-200 font-bold text-sm tracking-widest flex flex-col items-center justify-center gap-2 transition transform active:scale-95 shadow-[0_0_40px_rgba(220,38,38,0.5)]">
+                        <span class="text-3xl">👁️‍🗨️</span>
+                        <span>MANTER OLHOS FECHADOS</span>
+                    </button>
+                    <div id="breath-progress-bar" class="w-48 h-2 bg-zinc-900 rounded-full mt-6 overflow-hidden border border-zinc-800">
+                        <div id="breath-progress-fill" class="h-full bg-red-600 w-0 transition-all duration-100"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SCREEN 2: ACT 2 - CCTV SURVEILLANCE & DANIEL'S TAPES -->
+        <div id="screen-act2" class="hidden absolute inset-0 z-20 flex flex-col bg-zinc-950 p-2 md:p-4">
+            
+            <!-- Header Monitor Bar -->
+            <div class="flex justify-between items-center bg-zinc-900 border border-zinc-800 px-3 py-2 rounded mb-2">
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full bg-red-600 rec-dot"></span>
+                    <span class="font-vt323 text-red-500 text-xl tracking-wider">SISTEMA DE SEGURANÇA RESIDENCIAL</span>
+                </div>
+                <!-- Countdown Timer (10 Minutes Ultimatum) -->
+                <div class="flex items-center gap-2 bg-zinc-950 px-3 py-1 rounded border border-red-900/50">
+                    <span class="text-[10px] text-zinc-400 uppercase tracking-widest">TEMPO RESTANTE:</span>
+                    <span id="act2-timer" class="font-vt323 text-red-500 text-2xl font-bold">10:00</span>
+                </div>
+            </div>
+
+            <!-- Main Surveillance Grid Layout -->
+            <div class="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-3 overflow-hidden">
+                
+                <!-- Left 3 Columns: Camera Viewport -->
+                <div class="lg:col-span-3 flex flex-col bg-black border border-zinc-800 rounded relative overflow-hidden">
+                    
+                    <!-- Camera Canvas Screen -->
+                    <div class="relative w-full flex-1 bg-black flex items-center justify-center overflow-hidden">
+                        <canvas id="cctvCanvas" class="w-full h-full block bg-zinc-950"></canvas>
+
+                        <!-- Camera OSD Overlay -->
+                        <div class="absolute top-3 left-3 flex flex-col gap-1 text-xs font-mono text-emerald-400 bg-black/70 p-2 rounded border border-emerald-900/40 pointer-events-none">
+                            <div class="flex items-center gap-2 font-bold text-sm">
+                                <span id="cctv-cam-title">CAM 01 — QUARTO DO LUCAS</span>
+                            </div>
+                            <div id="cctv-mode-badge" class="text-[10px] text-emerald-300 uppercase tracking-widest">● TRANSMISSÃO AO VIVO</div>
+                        </div>
+
+                        <!-- Live vs. Replay Toggle Switch -->
+                        <div class="absolute top-3 right-3 flex items-center gap-1 bg-zinc-900/90 p-1 rounded border border-zinc-700">
+                            <button id="btn-mode-live" class="px-3 py-1 text-xs font-bold rounded bg-emerald-700 text-white transition">
+                                AO VIVO
+                            </button>
+                            <button id="btn-mode-replay" class="px-3 py-1 text-xs font-bold rounded bg-zinc-800 text-zinc-400 hover:text-white transition">
+                                REPLAY / GRAVAÇÃO
+                            </button>
+                        </div>
+
+                        <!-- Warning banner when entity detected in replay -->
+                        <div id="replay-anomaly-alert" class="hidden absolute bottom-4 inset-x-4 bg-red-950/90 border-2 border-red-600 p-2 text-center text-red-200 text-xs font-bold tracking-widest animate-pulse rounded">
+                            ⚠️ ANOMALIA DETECTADA NA GRAVAÇÃO: FIGURA NÃO IDENTIFICADA ATRÁS DO SUEITO
+                        </div>
+                    </div>
+
+                    <!-- Camera Selector Selector Tabs -->
+                    <div class="grid grid-cols-4 bg-zinc-900 border-t border-zinc-800 p-1.5 gap-1.5">
+                        <button id="cam-btn-1" class="py-2 text-xs font-bold rounded bg-red-900/40 border border-red-600 text-red-300 flex items-center justify-center gap-1">
+                            <span>📹</span> CAM 01 (Quarto)
+                        </button>
+                        <button id="cam-btn-2" class="py-2 text-xs font-bold rounded bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center gap-1">
+                            <span>📹</span> CAM 02 (Corredor)
+                        </button>
+                        <button id="cam-btn-3" class="py-2 text-xs font-bold rounded bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center gap-1">
+                            <span>📹</span> CAM 03 (Sala)
+                        </button>
+                        <button id="cam-btn-4" class="py-2 text-xs font-bold rounded bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center gap-1">
+                            <span>📹</span> CAM 04 (Porão)
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Right 1 Column: Daniel's VHS Tape Recordings Archives -->
+                <div class="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded p-3 flex flex-col justify-between overflow-y-auto">
+                    <div>
+                        <div class="flex items-center gap-2 border-b border-zinc-800 pb-2 mb-3">
+                            <span class="text-red-500 text-lg">📼</span>
+                            <h3 class="font-vt323 text-xl text-red-500 font-bold">FITAS DE DANIEL (2016)</h3>
+                        </div>
+                        <p class="text-[11px] text-zinc-400 mb-3">
+                            Gravações antigas encontradas no porão da casa. Escute os diários de Daniel.
+                        </p>
+
+                        <!-- List of VHS Audio Logs -->
+                        <div class="space-y-2">
+                            <!-- Tape 1 -->
+                            <button id="vhs-tape-1" class="w-full text-left p-2.5 rounded bg-zinc-950 border border-zinc-800 hover:border-red-600/60 transition group flex flex-col gap-1">
+                                <div class="flex justify-between items-center text-xs text-red-400 font-bold">
+                                    <span>FITA #1 — 14/10/2016</span>
+                                    <span class="text-[10px] text-zinc-500">00:42</span>
+                                </div>
+                                <div class="text-[10px] text-zinc-400 italic group-hover:text-zinc-200">"Sussurros no telefone..."</div>
+                            </button>
+
+                            <!-- Tape 2 -->
+                            <button id="vhs-tape-2" class="w-full text-left p-2.5 rounded bg-zinc-950 border border-zinc-800 hover:border-red-600/60 transition group flex flex-col gap-1">
+                                <div class="flex justify-between items-center text-xs text-red-400 font-bold">
+                                    <span>FITA #2 — 18/10/2016</span>
+                                    <span class="text-[10px] text-zinc-500">01:15</span>
+                                </div>
+                                <div class="text-[10px] text-zinc-400 italic group-hover:text-zinc-200">"Ele não aparece ao vivo..."</div>
+                            </button>
+
+                            <!-- Tape 3 -->
+                            <button id="vhs-tape-3" class="w-full text-left p-2.5 rounded bg-zinc-950 border border-zinc-800 hover:border-red-600/60 transition group flex flex-col gap-1">
+                                <div class="flex justify-between items-center text-xs text-red-400 font-bold">
+                                    <span>FITA #3 — 22/10/2016</span>
+                                    <span class="text-[10px] text-zinc-500">00:58</span>
+                                </div>
+                                <div class="text-[10px] text-zinc-400 italic group-hover:text-zinc-200">"Não olhe para trás..."</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Transcript Box -->
+                    <div id="tape-transcript-box" class="mt-4 p-3 bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-300 min-h-[110px] flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] text-red-500 font-bold uppercase tracking-wider block mb-1">TRANSCRIÇÃO DE ÁUDIO:</span>
+                            <p id="transcript-text" class="text-[11px] leading-relaxed italic text-zinc-400">
+                                Selecione uma fita acima para reproduzir as gravações de Daniel.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SCREEN 3: ACT 3 - FINAL CLIMAX & ENDING REPORT -->
+        <div id="screen-act3" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-black p-6 text-center">
+            
+            <!-- Final Cutscene View Container -->
+            <div id="final-cutscene-box" class="relative w-full max-w-2xl h-80 bg-zinc-950 border-2 border-red-600/60 rounded overflow-hidden flex flex-col justify-between p-4 shadow-[0_0_50px_rgba(220,38,38,0.4)]">
+                <!-- OSD -->
+                <div class="flex justify-between items-center text-xs font-mono text-red-500">
+                    <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-red-600 rec-dot"></span> GRAVANDO — CAM 01</span>
+                    <span>03:27:00 AM</span>
+                </div>
+
+                <!-- Final Dynamic Narrative Box -->
+                <div id="final-narrative-text" class="font-vt323 text-2xl md:text-3xl text-red-500 font-bold tracking-widest my-auto drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
+                    <!-- Text injected by sequence JS -->
+                </div>
+
+                <div class="text-[10px] text-zinc-600 uppercase tracking-widest">TRANSMISSÃO INTERROMPIDA</div>
+            </div>
+
+            <!-- Ending Police / Missing Person Report Modal (Appears after CRT shutdown) -->
+            <div id="screen-ending-modal" class="hidden fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 text-center">
+                <div class="max-w-lg w-full bg-zinc-950 border-2 border-red-600/80 p-6 md:p-8 rounded-xl shadow-[0_0_60px_rgba(220,38,38,0.5)] flex flex-col items-center">
+                    
+                    <div class="text-red-600 font-vt323 text-4xl font-extrabold tracking-widest mb-1">
+                        BOLETIM DE OCORRÊNCIA
+                    </div>
+                    <div class="text-xs text-zinc-500 uppercase tracking-[0.2em] mb-6 border-b border-zinc-800 pb-2 w-full">
+                        DEPARTAMENTO DE POLÍCIA DE ELDORIA
+                    </div>
+
+                    <!-- Missing Persons Cards -->
+                    <div class="w-full space-y-3 mb-6 text-left">
+                        <div class="bg-zinc-900/80 p-3 rounded border-l-4 border-zinc-600 flex justify-between items-center">
+                            <div>
+                                <div class="text-xs font-bold text-zinc-300">DANIEL ALVES</div>
+                                <div class="text-[10px] text-zinc-500">CASO #2016-882</div>
+                            </div>
+                            <span class="text-xs font-bold text-red-500 tracking-wider">DESAPARECIDO HÁ 10 ANOS</span>
+                        </div>
+
+                        <div class="bg-red-950/40 p-3 rounded border-l-4 border-red-600 flex justify-between items-center border border-red-900/40 animate-pulse">
+                            <div>
+                                <div class="text-xs font-bold text-red-200">LUCAS MENDES</div>
+                                <div class="text-[10px] text-red-400">CASO #2026-0317</div>
+                            </div>
+                            <span class="text-xs font-bold text-red-500 tracking-wider">DESAPARECIDO HÁ 1 MINUTO</span>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-zinc-400 italic mb-6 leading-relaxed">
+                        "As câmeras de segurança da residência capturaram a porta abrindo às 03:27 AM. O quarto estava vazio. Nenhuma marca de arrombamento foi encontrada."
+                    </p>
+
+                    <button id="btn-restart-game" class="w-full py-3 bg-red-900 hover:bg-red-800 text-red-100 font-bold text-sm tracking-widest uppercase rounded border border-red-500/50 shadow-lg active:scale-95 transition">
+                        JOGAR NOVAMENTE
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        /* ===================================================================
+           WEB AUDIO API - PROCEDURAL SYNTHESIZER (NO EXTERNAL AUDIO FILES)
+           =================================================================== */
+        class HorrorAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.staticGain = null;
+                this.staticNode = null;
+                this.isInitialized = false;
+            }
+
+            init() {
+                if (this.isInitialized) return;
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioCtx();
+                this.isInitialized = true;
+            }
+
+            // White noise generator for VHS static
+            playStatic(vol = 0.05) {
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                this.staticNode = this.ctx.createBufferSource();
+                this.staticNode.buffer = buffer;
+                this.staticNode.loop = true;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1000;
+
+                this.staticGain = this.ctx.createGain();
+                this.staticGain.gain.setValueAtTime(vol, this.ctx.currentTime);
+
+                this.staticNode.connect(filter);
+                filter.connect(this.staticGain);
+                this.staticGain.connect(this.ctx.destination);
+                this.staticNode.start();
+            }
+
+            setStaticVolume(vol) {
+                if (this.staticGain && this.ctx) {
+                    this.staticGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.1);
+                }
+            }
+
+            // Phone Ringtone Sound
+            playPhoneRing() {
+                if (!this.ctx) return;
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.type = 'sine';
+                osc2.type = 'sine';
+                osc1.frequency.setValueAtTime(440, this.ctx.currentTime);
+                osc2.frequency.setValueAtTime(480, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.5);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc1.start();
+                osc2.start();
+                osc1.stop(this.ctx.currentTime + 1.5);
+                osc2.stop(this.ctx.currentTime + 1.5);
+            }
+
+            // Phone Vibration pulse
+            playVibration() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(60, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.4);
+            }
+
+            // Deep Creepy Heartbeat
+            playHeartbeat() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(65, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.2);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            // Eerie Whisper Synth Effect
+            playWhisperSound() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 1.2);
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(300, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 1.2);
+            }
+
+            // Door Creak Sound
+            playDoorCreak() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(350, this.ctx.currentTime + 1.5);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.5);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 1.5);
+            }
+        }
+
+        const audio = new HorrorAudioEngine();
+
+        /* ===================================================================
+           CANVAS & CCTV RENDERER ENGINE
+           =================================================================== */
+        const cctvCanvas = document.getElementById('cctvCanvas');
+        const cctvCtx = cctvCanvas.getContext('2d');
+        const noiseCanvas = document.getElementById('noiseCanvas');
+        const noiseCtx = noiseCanvas.getContext('2d');
+
+        function resizeCanvases() {
+            cctvCanvas.width = cctvCanvas.parentElement.clientWidth;
+            cctvCanvas.height = cctvCanvas.parentElement.clientHeight;
+            noiseCanvas.width = window.innerWidth;
+            noiseCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // Game State Variables
+        let activeCam = 1; // 1: Quarto, 2: Corredor, 3: Sala, 4: Porão
+        let isReplayMode = false;
+        let countdownSeconds = 600; // 10 minutes
+        let entityDistance = 100; // Decreases as replay is inspected
+        let tapePlayedCount = 0;
+
+        // Draw Ambient CRT Noise Loop
+        function renderNoise() {
+            const w = noiseCanvas.width;
+            const h = noiseCanvas.height;
+            if (w === 0 || h === 0) return;
+            const imgData = noiseCtx.createImageData(w, h);
+            const buffer = new Uint32Array(imgData.data.buffer);
+            for (let i = 0; i < buffer.length; i++) {
+                if (Math.random() < 0.1) {
+                    buffer[i] = 0xffffffff;
+                }
+            }
+            noiseCtx.putImageData(imgData, 0, 0);
+        }
+
+        // Draw CCTV Camera Viewports
+        function renderCCTV() {
+            const w = cctvCanvas.width;
+            const h = cctvCanvas.height;
+            if (w === 0 || h === 0) return;
+
+            // Clear Background
+            cctvCtx.fillStyle = '#050505';
+            cctvCtx.fillRect(0, 0, w, h);
+
+            // Draw Camera Specific Room Shapes
+            cctvCtx.strokeStyle = '#27272a';
+            cctvCtx.lineWidth = 2;
+
+            if (activeCam === 1) { // Quarto do Lucas
+                // Bed
+                cctvCtx.strokeRect(w * 0.2, h * 0.4, w * 0.35, h * 0.45);
+                cctvCtx.fillStyle = '#18181b';
+                cctvCtx.fillRect(w * 0.22, h * 0.42, w * 0.31, h * 0.41);
+                // Pillow & Lucas lying
+                cctvCtx.fillStyle = '#3f3f46';
+                cctvCtx.fillRect(w * 0.24, h * 0.45, w * 0.1, h * 0.12);
+
+                // Door frame
+                cctvCtx.strokeRect(w * 0.75, h * 0.2, w * 0.18, h * 0.65);
+
+                // KEY MYSTERY MECHANIC:
+                // IF REPLAY MODE IS ACTIVE ON CAM 1, DRAW THE DARK SHADOW FIGURE BEHIND LUCAS!
+                if (isReplayMode) {
+                    // Tall dark figure
+                    const figX = w * 0.65 - (100 - entityDistance) * 2;
+                    const figY = h * 0.35;
+                    
+                    cctvCtx.save();
+                    cctvCtx.fillStyle = '#000000';
+                    cctvCtx.shadowColor = '#dc2626';
+                    cctvCtx.shadowBlur = 15;
+
+                    // Silhouette
+                    cctvCtx.beginPath();
+                    cctvCtx.ellipse(figX, figY, 18, 28, 0, 0, Math.PI * 2); // Head/Shoulders
+                    cctvCtx.fillRect(figX - 16, figY + 10, 32, 90); // Body
+                    cctvCtx.fill();
+
+                    // Glowing pinpoint eyes
+                    cctvCtx.fillStyle = '#ffffff';
+                    cctvCtx.beginPath();
+                    cctvCtx.arc(figX - 5, figY - 4, 2, 0, Math.PI * 2);
+                    cctvCtx.arc(figX + 5, figY - 4, 2, 0, Math.PI * 2);
+                    cctvCtx.fill();
+
+                    cctvCtx.restore();
+                }
+
+            } else if (activeCam === 2) { // Corredor
+                cctvCtx.beginPath();
+                cctvCtx.moveTo(w * 0.3, h * 0.1);
+                cctvCtx.lineTo(w * 0.3, h * 0.9);
+                cctvCtx.moveTo(w * 0.7, h * 0.1);
+                cctvCtx.lineTo(w * 0.7, h * 0.9);
+                cctvCtx.stroke();
+
+            } else if (activeCam === 3) { // Sala
+                cctvCtx.strokeRect(w * 0.1, h * 0.5, w * 0.4, h * 0.3); // Sofa
+                cctvCtx.strokeRect(w * 0.6, h * 0.4, w * 0.2, h * 0.2); // TV
+
+            } else if (activeCam === 4) { // Porão
+                cctvCtx.fillStyle = '#09090b';
+                cctvCtx.fillRect(w * 0.1, h * 0.2, w * 0.8, h * 0.6);
+            }
+
+            // VHS Scanline Grid Lines on Canvas
+            cctvCtx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+            for (let y = 0; y < h; y += 4) {
+                cctvCtx.fillRect(0, y, w, 1);
+            }
+
+            // Time Overlay on Canvas
+            cctvCtx.font = '16px "Share Tech Mono"';
+            cctvCtx.fillStyle = '#10b981';
+            const timestamp = isReplayMode ? '14/10/2016 03:17:22 [REPLAY]' : '12/10/2026 03:17:00 [LIVE]';
+            cctvCtx.fillText(timestamp, 20, h - 20);
+        }
+
+        /* ===================================================================
+           ACT 1: INTERACTIVE MESSAGES & PHONE CALL FLOW
+           =================================================================== */
+        const screenStart = document.getElementById('screen-start');
+        const screenAct1 = document.getElementById('screen-act1');
+        const screenAct2 = document.getElementById('screen-act2');
+        const screenAct3 = document.getElementById('screen-act3');
+        const chatBody = document.getElementById('phone-chat-body');
+        const phoneActions = document.getElementById('phone-actions');
+        const phoneCallOverlay = document.getElementById('phone-call-overlay');
+
+        function addMessage(text, isUser = false) {
+            const msg = document.createElement('div');
+            msg.className = `max-w-[85%] p-2.5 rounded-xl text-xs ${
+                isUser 
+                ? 'bg-blue-600 text-white self-end rounded-br-none' 
+                : 'bg-zinc-800 text-red-200 border border-red-900/40 self-start rounded-bl-none font-mono animate-pulse'
+            }`;
+            msg.innerText = text;
+            chatBody.appendChild(msg);
+            chatBody.scrollTop = chatBody.scrollHeight;
+            audio.playVibration();
+        }
+
+        document.getElementById('btn-start-game').onclick = () => {
+            audio.init();
+            audio.playStatic(0.04);
+
+            screenStart.classList.add('hidden');
+            screenAct1.classList.remove('hidden');
+
+            // Start Message Sequence
+            setTimeout(() => addMessage("NÃO DURMA."), 1200);
+            setTimeout(() => addMessage("EU SEI QUE VOCÊ ESTÁ SOZINHO."), 2800);
+
+            // Present Choices
+            setTimeout(() => {
+                phoneActions.innerHTML = `
+                    <button id="btn-choice-window" class="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700">
+                        [ Olhar pela Janela ]
+                    </button>
+                    <button id="btn-choice-curtains" class="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700">
+                        [ Fechar Cortinas e Tentar Dormir ]
+                    </button>
+                `;
+
+                document.getElementById('btn-choice-window').onclick = () => handleChoice('window');
+                document.getElementById('btn-choice-curtains').onclick = () => handleChoice('curtains');
+            }, 4000);
+        };
+
+        function handleChoice(type) {
+            phoneActions.innerHTML = '';
+            if (type === 'window') {
+                addMessage("Olhei pela janela... Não há ninguém lá fora.", true);
+                document.getElementById('window-status-text').innerText = "Janela Aberta - Nada Lá Fora";
+            } else {
+                addMessage("Fechei as cortinas.", true);
+                document.getElementById('curtain-left').style.width = '50%';
+                document.getElementById('curtain-right').style.width = '50%';
+                document.getElementById('window-status-text').innerText = "Cortinas Fechadas";
+            }
+
+            // Trigger Phone Call from OWN number
+            setTimeout(() => {
+                phoneCallOverlay.classList.remove('hidden');
+                audio.playPhoneRing();
+            }, 2000);
+        }
+
+        // Answer Call & Hold Breathing Mechanic
+        document.getElementById('btn-answer-call').onclick = () => {
+            phoneCallOverlay.classList.add('hidden');
+            audio.playWhisperSound();
+            
+            addMessage("📞 [LIGAÇÃO ATENDIDA] SUSSURRO: 'Não olhe para trás.'");
+
+            // Show Hold Breath Overlay
+            setTimeout(() => {
+                document.getElementById('hold-breath-zone').classList.remove('hidden');
+                audio.playHeartbeat();
+            }, 1500);
+        };
+
+        // Hold Breath Button Mechanics
+        const btnHold = document.getElementById('btn-hold-breath');
+        const breathFill = document.getElementById('breath-progress-fill');
+        let breathHoldTime = 0;
+        let breathInterval = null;
+
+        btnHold.onmousedown = btnHold.ontouchstart = (e) => {
+            e.preventDefault();
+            breathInterval = setInterval(() => {
+                breathHoldTime += 5;
+                breathFill.style.width = `${breathHoldTime}%`;
+                audio.playHeartbeat();
+
+                if (breathHoldTime >= 100) {
+                    clearInterval(breathInterval);
+                    document.getElementById('hold-breath-zone').classList.add('hidden');
+                    
+                    // Receive Final Act 1 Messages
+                    setTimeout(() => addMessage("Muito bem."), 1000);
+                    setTimeout(() => addMessage("Agora você tem 10 minutos."), 2500);
+
+                    // Transition to Act 2 (CCTV System)
+                    setTimeout(() => {
+                        screenAct1.classList.add('hidden');
+                        screenAct2.classList.remove('hidden');
+                        startAct2Countdown();
+                    }, 4500);
+                }
+            }, 100);
+        };
+
+        btnHold.onmouseup = btnHold.ontouchend = () => {
+            if (breathHoldTime < 100) {
+                clearInterval(breathInterval);
+                breathHoldTime = 0;
+                breathFill.style.width = '0%';
+            }
+        };
+
+        /* ===================================================================
+           ACT 2: CCTV SURVEILLANCE & DANIEL'S TAPES MECHANICS
+           =================================================================== */
+        function startAct2Countdown() {
+            const timerEl = document.getElementById('act2-timer');
+            setInterval(() => {
+                if (countdownSeconds > 0) {
+                    countdownSeconds--;
+                    const m = Math.floor(countdownSeconds / 60).toString().padStart(2, '0');
+                    const s = (countdownSeconds % 60).toString().padStart(2, '0');
+                    timerEl.innerText = `${m}:${s}`;
+                } else {
+                    triggerFinalClimax();
+                }
+            }, 1000);
+        }
+
+        // Camera Button Switches
+        [1, 2, 3, 4].forEach(camNum => {
+            document.getElementById(`cam-btn-${camNum}`).onclick = () => {
+                activeCam = camNum;
+                const titles = ['CAM 01 — QUARTO DO LUCAS', 'CAM 02 — CORREDOR', 'CAM 03 — SALA DE ESTAR', 'CAM 04 — PORÃO'];
+                document.getElementById('cctv-cam-title').innerText = titles[camNum - 1];
+
+                // Update tab styles
+                for (let i = 1; i <= 4; i++) {
+                    const btn = document.getElementById(`cam-btn-${i}`);
+                    if (i === camNum) {
+                        btn.className = "py-2 text-xs font-bold rounded bg-red-900/40 border border-red-600 text-red-300 flex items-center justify-center gap-1";
+                    } else {
+                        btn.className = "py-2 text-xs font-bold rounded bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center gap-1";
+                    }
+                }
+            };
+        });
+
+        // Toggle Live vs Replay Mode
+        const btnLive = document.getElementById('btn-mode-live');
+        const btnReplay = document.getElementById('btn-mode-replay');
+        const badge = document.getElementById('cctv-mode-badge');
+        const alertBox = document.getElementById('replay-anomaly-alert');
+
+        btnLive.onclick = () => {
+            isReplayMode = false;
+            btnLive.className = "px-3 py-1 text-xs font-bold rounded bg-emerald-700 text-white transition";
+            btnReplay.className = "px-3 py-1 text-xs font-bold rounded bg-zinc-800 text-zinc-400 hover:text-white transition";
+            badge.innerText = "● TRANSMISSÃO AO VIVO";
+            badge.className = "text-[10px] text-emerald-300 uppercase tracking-widest";
+            alertBox.classList.add('hidden');
+        };
+
+        btnReplay.onclick = () => {
+            isReplayMode = true;
+            btnReplay.className = "px-3 py-1 text-xs font-bold rounded bg-red-700 text-white transition";
+            btnLive.className = "px-3 py-1 text-xs font-bold rounded bg-zinc-800 text-zinc-400 hover:text-white transition";
+            badge.innerText = "● MODO REPLAY / GRAVAÇÃO";
+            badge.className = "text-[10px] text-red-400 uppercase tracking-widest animate-pulse";
+            
+            if (activeCam === 1) {
+                alertBox.classList.remove('hidden');
+                entityDistance = Math.max(10, entityDistance - 25); // Moves figure closer on each check!
+                audio.playWhisperSound();
+            }
+        };
+
+        // VHS Tape Logs
+        const transcripts = {
+            1: "VOZ DE DANIEL (14/10/2016): 'O telefone começou a tocar sozinho de madrugada. Quando atendi, era meu próprio número. Alguém me mandou não olhar para trás...'",
+            2: "VOZ DE DANIEL (18/10/2016): 'Descobri algo aterrorizante. Ele não aparece nas câmeras ao vivo! A sala parece vazia agora... mas quando assisto à gravação... HÁ ALGUÉM PARADO ATRÁS DE MIM.'",
+            3: "VOZ DE DANIEL (22/10/2016): 'Se você está ouvindo isso... é tarde demais. Ele já está do seu lado. Agora é sua vez de gravar...'"
+        };
+
+        [1, 2, 3].forEach(tapeNum => {
+            document.getElementById(`vhs-tape-${tapeNum}`).onclick = () => {
+                document.getElementById('transcript-text').innerText = transcripts[tapeNum];
+                audio.playStatic(0.08);
+                audio.playWhisperSound();
+                tapePlayedCount++;
+
+                if (tapePlayedCount >= 3) {
+                    setTimeout(() => triggerFinalClimax(), 4000);
+                }
+            };
+        });
+
+        /* ===================================================================
+           ACT 3: FINAL CLIMAX & CRT POWER OFF ENDING
+           =================================================================== */
+        function triggerFinalClimax() {
+            screenAct2.classList.add('hidden');
+            screenAct3.classList.remove('hidden');
+
+            const narrative = document.getElementById('final-narrative-text');
+            audio.playDoorCreak();
+
+            narrative.innerText = "A PORTA DO QUARTO SE ABRE LENTAMENTE...";
+
+            setTimeout(() => {
+                narrative.innerText = "UMA FIGURA ENTRA NA ESCURIDÃO...";
+                audio.playHeartbeat();
+            }, 3000);
+
+            setTimeout(() => {
+                narrative.innerText = "ELA SE APROXIMA DA CAMA DE LUCAS...";
+                audio.playWhisperSound();
+            }, 6000);
+
+            setTimeout(() => {
+                narrative.innerText = "'AGORA É SUA VEZ DE GRAVAR.'";
+                audio.playStatic(0.3);
+            }, 9000);
+
+            // CRT Power-off shutdown effect
+            setTimeout(() => {
+                document.getElementById('game-container').classList.add('crt-shutdown');
+                
+                setTimeout(() => {
+                    document.getElementById('screen-ending-modal').classList.remove('hidden');
+                }, 1000);
+            }, 12000);
+        }
+
+        document.getElementById('btn-restart-game').onclick = () => {
+            window.location.reload();
+        };
+
+        // Main Animation Loop
+        function animLoop() {
+            renderNoise();
+            renderCCTV();
+            requestAnimationFrame(animLoop);
+        }
+        requestAnimationFrame(animLoop);
+    </script>
+</body>
+</html>
